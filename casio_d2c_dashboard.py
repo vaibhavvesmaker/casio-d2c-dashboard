@@ -41,7 +41,7 @@ st.markdown("""
         background: #ffffff;
         border-right: 1px solid #e5e7eb;
     }
-
+    
     section[data-testid="stSidebar"] > div {
         padding-top: 1.3rem;
     }
@@ -308,7 +308,49 @@ st.markdown("""
     footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
-
+st.markdown("""
+<style>
+    /* Styling for the gray container */
+    .card {
+        background-color: #f8f9fc;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid #e2e8f0;
+        font-family: 'Inter', Arial, sans-serif;
+    }
+    
+    /* Styling for the titles */
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.25rem;
+    }
+    
+    .card-subtitle {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Styling for the flex layout of the rows */
+    .readout-row {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        color: #334155;
+    }
+    
+    /* Styling for the icons */
+    .readout-icon {
+        font-size: 1.2rem;
+        margin-right: 0.75rem;
+        color: #0f172a;
+        line-height: 1;
+    }
+</style>
+""", unsafe_allow_html=True)
 # -----------------------------
 # Data: simulated ecommerce metrics
 # -----------------------------
@@ -511,64 +553,94 @@ if page == "📊 Executive Overview":
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         st.markdown('</div>', unsafe_allow_html=True)
 
+        # -----------------------------
+    # Revenue Mix + Executive Readout
+    # FIXED:
+    # Do NOT wrap st.plotly_chart or st.dataframe inside custom <div class="card">.
+    # Streamlit breaks custom HTML wrappers around native components.
+    # Use st.container(border=True) for Streamlit charts/tables.
+    # Use pure HTML only for the Executive Readout card.
+    # -----------------------------
+
     left, right = st.columns([1.05, 1])
 
     with left:
-        st.markdown('<div class="card"><div class="card-title">Revenue Mix by Category</div><div class="card-subtitle">Category contribution to simulated D2C revenue.</div>', unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("### Revenue Mix by Category")
+            st.caption("Category contribution to simulated D2C revenue.")
 
-        fig = go.Figure(data=[go.Pie(
-            labels=data["Category"],
-            values=data["Revenue"],
-            hole=.60,
-            marker=dict(colors=["#003296", "#0057d9", "#6ea8fe", "#ff7a00"]),
-            textinfo="none"
-        )])
+            fig = go.Figure(data=[go.Pie(
+                labels=data["Category"],
+                values=data["Revenue"],
+                hole=.60,
+                marker=dict(colors=["#003296", "#0057d9", "#6ea8fe", "#ff7a00"]),
+                textinfo="none"
+            )])
 
-        fig.update_layout(
-            showlegend=True,
-            margin=dict(l=10, r=10, t=10, b=10),
-            paper_bgcolor="white",
-            height=320,
-            font=dict(color="#334155", family="Inter, Arial, sans-serif"),
-            annotations=[dict(
-                text=f"<b>{compact_money(total_revenue)}</b><br><span style='font-size:13px;color:#64748b'>Total Revenue</span>",
-                x=0.5,
-                y=0.5,
-                font_size=20,
-                showarrow=False
-            )]
-        )
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            fig.update_layout(
+                showlegend=True,
+                margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="white",
+                height=320,
+                font=dict(color="#334155", family="Inter, Arial, sans-serif"),
+                annotations=[dict(
+                    text=f"<b>{compact_money(total_revenue)}</b><br><span style='font-size:13px;color:#64748b'>Total Revenue</span>",
+                    x=0.5,
+                    y=0.5,
+                    font_size=20,
+                    showarrow=False
+                )]
+            )
 
-        mix = data[["Category", "Revenue", "Revenue Share"]].copy()
-        mix["Revenue"] = mix["Revenue"].map(money)
-        mix["Revenue Share"] = mix["Revenue Share"].map(lambda x: f"{x*100:.1f}%")
-        st.dataframe(mix, use_container_width=True, hide_index=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-    with right:
-        st.markdown("""
-        <div class="card">
-            <div class="card-title">Executive Readout</div>
-            <div class="card-subtitle">Decision-oriented interpretation of simulated performance.</div>
+            mix = data[["Category", "Revenue", "Revenue Share"]].copy()
+            mix["Revenue"] = mix["Revenue"].map(money)
+            mix["Revenue Share"] = mix["Revenue Share"].map(lambda x: f"{x*100:.1f}%")
+            st.dataframe(mix, use_container_width=True, hide_index=True)
 
-            <div class="readout-row">
-                <div class="readout-icon">↗</div>
-                <div><b>Growth engine:</b> G-SHOCK contributes the largest simulated revenue share, making it the first category to prioritize for CRO and launch-flow testing.</div>
-            </div>
+    # with right:
+    #     # FIXED:
+    #     # This card is pure HTML, so unsafe_allow_html=True works correctly.
+    #     # Also fixed indentation under "with right:".
+    #     st.markdown("""
+    #     <div class="card">
+    #         <div class="card-title">Executive Readout</div>
+    #         <div class="card-subtitle">Decision-oriented interpretation of simulated performance.</div>
 
-            <div class="readout-row">
-                <div class="readout-icon">◎</div>
-                <div><b>Margin opportunity:</b> Keyboards show the highest AOV but lower conversion, suggesting a need for comparison content, financing CTAs, or guided buying.</div>
-            </div>
+    #         <div class="readout-row">
+    #             <div class="readout-icon">↗</div>
+    #             <div><b>Growth engine:</b> G-SHOCK contributes the largest simulated revenue share, making it the first category to prioritize for CRO and launch-flow testing.</div>
+    #         </div>
 
-            <div class="readout-row">
-                <div class="readout-icon">☑</div>
-                <div><b>Seasonality watch:</b> Calculators likely require a demand-planning lens around back-to-school cycles.</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    #         <div class="readout-row">
+    #             <div class="readout-icon">◎</div>
+    #             <div><b>Margin opportunity:</b> Keyboards show the highest AOV but lower conversion, suggesting a need for comparison content, financing CTAs, or guided buying.</div>
+    #         </div>
 
+    #         <div class="readout-row">
+    #             <div class="readout-icon">☑</div>
+    #             <div><b>Seasonality watch:</b> Calculators likely require a demand-planning lens around back-to-school cycles.</div>
+    #         </div>
+    #     </div>
+    #     """, unsafe_allow_html=True)
+        with right:
+         st.markdown("""<div class="card">
+<div class="card-title">Executive Readout</div>
+<div class="card-subtitle">Decision-oriented interpretation of simulated performance.</div>
+<div class="readout-row">
+<div class="readout-icon">↗</div>
+<div><b>Growth engine:</b> G-SHOCK contributes the largest simulated revenue share, making it the first category to prioritize for CRO and launch-flow testing.</div>
+</div>
+<div class="readout-row">
+<div class="readout-icon">◎</div>
+<div><b>Margin opportunity:</b> Keyboards show the highest AOV but lower conversion, suggesting a need for comparison content, financing CTAs, or guided buying.</div>
+</div>
+<div class="readout-row">
+<div class="readout-icon">☑</div>
+<div><b>Seasonality watch:</b> Calculators likely require a demand-planning lens around back-to-school cycles.</div>
+</div>
+</div>""", unsafe_allow_html=True)
 # -----------------------------
 # Product Performance
 # -----------------------------
